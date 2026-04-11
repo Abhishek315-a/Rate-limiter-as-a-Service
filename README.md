@@ -2,14 +2,90 @@
 
 A production-grade rate limiting service with Token Bucket algorithm, Redis-backed atomic counters, and a REST API.
 
-## Setup
+## How to Run
+
+### Prerequisites
+- Node.js >= 12
+- Redis
+- PostgreSQL
+
+Install Redis & PostgreSQL via Homebrew (macOS):
+```bash
+brew install redis postgresql@15
+brew services start redis
+brew services start postgresql@15
+```
+
+---
+
+### 1. First-Time Setup
 
 ```bash
-cp .env.example .env
-# Fill in your Redis and PostgreSQL credentials
-
+# Install backend dependencies
 npm install
+
+# Copy env file and fill in your values
+cp .env.example .env
+
+# Create the database
+/opt/homebrew/opt/postgresql@15/bin/createdb rlaas
+
+# Install frontend dependencies
+cd client && npm install && cd ..
+```
+
+`.env` values needed:
+```
+PORT=3000
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+DATABASE_URL=postgresql://localhost:5432/rlaas
+JWT_SECRET=any_random_secret_here
+NODE_ENV=development
+```
+
+---
+
+### 2. Run Backend (Terminal 1)
+
+```bash
 npm run dev
+```
+
+Server starts on **http://localhost:3000**
+
+Expected output:
+```
+Redis connected
+PostgreSQL connected
+Migrations complete
+RLaaS running on port 3000
+```
+
+---
+
+### 3. Run Frontend (Terminal 2)
+
+```bash
+cd client
+PORT=3001 npm start
+```
+
+Dashboard opens at **http://localhost:3001**
+
+---
+
+### 4. Quick Smoke Test
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Register a user
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@test.com","password":"password123"}'
 ```
 
 ## API
