@@ -29,79 +29,105 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <div style={styles.logo}>
-          <span style={styles.logoIcon}>⚡</span>
-          <span style={styles.logoText}>RLaaS</span>
+    <div className="login-page">
+      <div className="login-left" style={styles.left}>
+        <div style={styles.brand}>
+          <div style={styles.brandMark}>
+            <span style={styles.dot} />
+            <span style={styles.wordmark}>rlaas</span>
+          </div>
+          <p style={styles.brandDesc}>Rate limiting infrastructure.<br />Per-user, per-resource, configurable.</p>
         </div>
-        <h2 style={styles.title}>{isRegister ? 'Create account' : 'Welcome back'}</h2>
-        <p style={styles.subtitle}>Rate Limiter as a Service</p>
+        <div style={styles.featureList}>
+          <div style={styles.feature}>Token Bucket &amp; Sliding Window algorithms</div>
+          <div style={styles.feature}>Named rules — define once, apply anywhere</div>
+          <div style={styles.feature}>Real-time request logs &amp; traffic charts</div>
+        </div>
+      </div>
 
-        {error && <div style={styles.error}>{error}</div>}
+      <div className="login-right" style={styles.right}>
+        <div style={styles.card}>
+          <h2 style={styles.title}>{isRegister ? 'Create account' : 'Sign in'}</h2>
+          <p style={styles.subtitle}>{isRegister ? 'Start rate limiting in minutes.' : 'Continue to your dashboard.'}</p>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.field}>
-            <label style={styles.label}>Email</label>
-            <input
-              style={styles.input}
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div style={styles.field}>
-            <label style={styles.label}>Password</label>
-            <input
-              style={styles.input}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button style={loading ? styles.btnDisabled : styles.btn} type="submit" disabled={loading}>
-            {loading ? 'Please wait...' : (isRegister ? 'Create account' : 'Sign in')}
-          </button>
-        </form>
+          {error && <div style={styles.error}>{error}</div>}
 
-        <p style={styles.toggle}>
-          {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-          <button style={styles.link} onClick={() => { setIsRegister(!isRegister); setError(''); }}>
-            {isRegister ? 'Sign in' : 'Register'}
-          </button>
-        </p>
+          <form onSubmit={handleSubmit} style={styles.form}>
+            <div style={styles.field}>
+              <label style={styles.label}>Email</label>
+              <input
+                style={styles.input}
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Password</label>
+              <input
+                style={styles.input}
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <button style={loading ? styles.btnDisabled : styles.btn} type="submit" disabled={loading}>
+              {loading ? 'Signing in...' : (isRegister ? 'Create account' : 'Sign in')}
+            </button>
+          </form>
+
+          <p style={styles.toggle}>
+            {isRegister ? 'Already have an account? ' : 'No account? '}
+            <button style={styles.link} onClick={() => { setIsRegister(!isRegister); setError(''); }}>
+              {isRegister ? 'Sign in' : 'Register'}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
 }
 
 const styles = {
-  page: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'var(--bg)',
-    padding: '20px',
+  page: { background: 'var(--bg)' },
+  left: {
+    display: 'flex', flexDirection: 'column', justifyContent: 'center',
+    padding: '60px', borderRight: '1px solid var(--border)',
+    background: 'var(--surface2)',
+  },
+  right: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '40px',
+  },
+  brand: { marginBottom: '48px' },
+  brandMark: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' },
+  dot: {
+    display: 'inline-block', width: '10px', height: '10px',
+    borderRadius: '50%', background: '#7c3aed', flexShrink: 0,
+  },
+  wordmark: {
+    fontFamily: "'SF Mono', 'Fira Code', 'Menlo', monospace",
+    fontSize: '20px', fontWeight: '700', color: 'var(--text)', letterSpacing: '-0.02em',
+  },
+  brandDesc: {
+    fontSize: '15px', color: 'var(--text3)', lineHeight: '1.6',
+    fontWeight: '400',
+  },
+  featureList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  feature: {
+    fontSize: '13px', color: 'var(--text4)',
+    paddingLeft: '16px', borderLeft: '2px solid var(--border2)',
+    lineHeight: '1.5',
   },
   card: {
-    background: 'var(--surface)',
-    border: '1px solid var(--border2)',
-    borderRadius: '16px',
-    padding: '40px',
-    width: '100%',
-    maxWidth: '400px',
-    boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+    width: '100%', maxWidth: '360px',
   },
-  logo: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' },
-  logoIcon: { fontSize: '28px' },
-  logoText: { fontSize: '22px', fontWeight: '700', color: '#7c3aed' },
-  title: { fontSize: '24px', fontWeight: '700', color: 'var(--text)', marginBottom: '4px' },
-  subtitle: { fontSize: '14px', color: 'var(--text4)', marginBottom: '28px' },
+  title: { fontSize: '20px', fontWeight: '600', color: 'var(--text)', marginBottom: '4px' },
+  subtitle: { fontSize: '13px', color: 'var(--text4)', marginBottom: '28px' },
   error: {
     background: 'rgba(239,68,68,0.1)',
     border: '1px solid rgba(239,68,68,0.3)',

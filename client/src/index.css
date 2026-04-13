@@ -35,11 +35,19 @@ body.light {
 }
 
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s, color 0.2s;
+}
+
+input, select, button, textarea {
+  font-family: inherit;
+}
+
+code, pre, .mono {
+  font-family: 'SF Mono', 'Fira Code', 'Menlo', monospace;
 }
 
 ::-webkit-scrollbar {
@@ -51,4 +59,123 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #2d3148;
   border-radius: 3px;
+}
+
+/* ── Layout ───────────────────────────────────── */
+.rlaas-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.rlaas-sidebar {
+  width: 220px;
+  min-width: 220px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.rlaas-main {
+  flex: 1;
+  overflow: auto;
+  min-width: 0;
+}
+
+.rlaas-topbar {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  z-index: 50;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.rlaas-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 90;
+}
+
+/* ── Stats grid ───────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ── Tester two-col layout ────────────────────── */
+.tester-layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 20px;
+}
+
+/* ── Table horizontal scroll ──────────────────── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Responsive breakpoints ───────────────────── */
+@media (max-width: 900px) {
+  .tester-layout {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .rlaas-topbar {
+    display: flex;
+  }
+  .rlaas-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    overflow-y: auto;
+  }
+  .rlaas-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+  }
+  .rlaas-overlay.open {
+    display: block;
+  }
+  .rlaas-main {
+    margin-top: 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Login page — collapse split layout on mobile */
+.login-page {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+@media (max-width: 700px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+  .login-left {
+    display: none !important;
+  }
+  .login-right {
+    padding: 40px 24px !important;
+  }
 }

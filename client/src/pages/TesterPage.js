@@ -57,7 +57,7 @@ export default function TesterPage() {
         <p style={styles.subtitle}>Fire requests against the rate limiter and watch it respond in real time</p>
       </div>
 
-      <div style={styles.layout}>
+      <div className="tester-layout">
         <div style={styles.formCard}>
           <h2 style={styles.sectionTitle}>Request Config</h2>
           <form onSubmit={handleCheck} style={styles.form}>
@@ -151,7 +151,7 @@ const styles = {
   header: { marginBottom: '28px' },
   title: { fontSize: '22px', fontWeight: '700', color: 'var(--text)' },
   subtitle: { fontSize: '14px', color: 'var(--text4)', marginTop: '4px' },
-  layout: { display: 'grid', gridTemplateColumns: '400px 1fr', gap: '20px' },
+  layout: {},
   formCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px' },
   resultsCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px' },
   sectionTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--text2)', marginBottom: '16px' },

@@ -99,6 +99,7 @@ export default function ApiKeysPage() {
         {keys.length === 0 ? (
           <div style={styles.empty}>No API keys yet. Create one above.</div>
         ) : (
+          <div className="table-scroll">
           <table style={styles.table}>
             <thead>
               <tr>
@@ -141,6 +142,7 @@ export default function ApiKeysPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

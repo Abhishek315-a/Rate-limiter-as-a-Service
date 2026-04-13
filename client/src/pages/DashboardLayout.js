@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Switch, Route, useLocation, useHistory } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
@@ -8,10 +8,10 @@ import RulesPage from './RulesPage';
 import TesterPage from './TesterPage';
 
 const NAV = [
-  { path: '/', label: 'Overview', icon: '📊' },
-  { path: '/keys', label: 'API Keys', icon: '🔑' },
-  { path: '/rules', label: 'Rules', icon: '📋' },
-  { path: '/tester', label: 'Live Tester', icon: '🧪' },
+  { path: '/', label: 'Overview' },
+  { path: '/keys', label: 'API Keys' },
+  { path: '/rules', label: 'Rules' },
+  { path: '/tester', label: 'Live Tester' },
 ];
 
 export default function DashboardLayout() {
@@ -19,16 +19,22 @@ export default function DashboardLayout() {
   const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const history = useHistory();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  function handleNav(path) { history.push(path); }
+  function handleNav(path) { history.push(path); setSidebarOpen(false); }
 
   return (
-    <div style={styles.shell}>
-      <aside style={styles.sidebar}>
+    <div className="rlaas-shell">
+      <div className="rlaas-topbar">
+        <button style={styles.hamburger} onClick={() => setSidebarOpen(true)}>&#9776;</button>
+        <span style={styles.wordmark}>rlaas</span>
+      </div>
+      <div className={`rlaas-overlay${sidebarOpen ? ' open' : ''}`} onClick={() => setSidebarOpen(false)} />
+      <aside className={`rlaas-sidebar${sidebarOpen ? ' open' : ''}`} style={styles.sidebar}>
         <div style={styles.sidebarTop}>
           <div style={styles.logo}>
-            <span style={styles.logoIcon}>⚡</span>
-            <span style={styles.logoText}>RLaaS</span>
+            <span style={styles.logoDot} />
+            <span style={styles.logoText}>rlaas</span>
           </div>
           <nav style={styles.nav}>
             {NAV.map((item) => {
@@ -39,7 +45,6 @@ export default function DashboardLayout() {
                   style={active ? styles.navItemActive : styles.navItem}
                   onClick={() => handleNav(item.path)}
                 >
-                  <span style={styles.navIcon}>{item.icon}</span>
                   {item.label}
                 </button>
               );
@@ -58,7 +63,7 @@ export default function DashboardLayout() {
         </div>
       </aside>
 
-      <main style={styles.main}>
+      <main className="rlaas-main" style={styles.main}>
         <Switch>
           <Route exact path="/" component={OverviewPage} />
           <Route path="/keys" component={ApiKeysPage} />
@@ -71,33 +76,46 @@ export default function DashboardLayout() {
 }
 
 const styles = {
-  shell: { display: 'flex', height: '100vh', overflow: 'hidden' },
+  hamburger: {
+    background: 'none', border: 'none', color: 'var(--text)',
+    fontSize: '18px', cursor: 'pointer', padding: '4px 8px', lineHeight: 1,
+  },
+  wordmark: {
+    fontFamily: "'SF Mono', 'Fira Code', 'Menlo', monospace",
+    fontSize: '15px', fontWeight: '700', color: '#7c3aed', letterSpacing: '-0.02em',
+  },
   sidebar: {
-    width: '220px', minWidth: '220px',
     background: 'var(--surface2)',
     borderRight: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column',
-    justifyContent: 'space-between', padding: '24px 0',
+    justifyContent: 'space-between', padding: '20px 0',
   },
   sidebarTop: { display: 'flex', flexDirection: 'column' },
-  logo: { display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', marginBottom: '32px' },
-  logoIcon: { fontSize: '22px' },
-  logoText: { fontSize: '18px', fontWeight: '700', color: '#7c3aed' },
-  nav: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 12px' },
+  logo: { display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', marginBottom: '28px' },
+  logoDot: {
+    display: 'inline-block', width: '8px', height: '8px',
+    borderRadius: '50%', background: '#7c3aed', flexShrink: 0,
+  },
+  logoText: {
+    fontFamily: "'SF Mono', 'Fira Code', 'Menlo', monospace",
+    fontSize: '15px', fontWeight: '700', color: 'var(--text)', letterSpacing: '-0.02em',
+  },
+  nav: { display: 'flex', flexDirection: 'column', padding: '0 8px' },
   navItem: {
-    display: 'flex', alignItems: 'center', gap: '10px',
-    background: 'none', border: 'none', color: 'var(--text4)',
-    padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
-    fontSize: '14px', fontWeight: '500', textAlign: 'left', width: '100%',
+    display: 'flex', alignItems: 'center',
+    background: 'none', border: 'none', borderLeft: '2px solid transparent',
+    color: 'var(--text4)', padding: '8px 14px',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '400',
+    textAlign: 'left', width: '100%', letterSpacing: '0.01em',
   },
   navItemActive: {
-    display: 'flex', alignItems: 'center', gap: '10px',
-    background: 'rgba(124,58,237,0.15)', border: 'none',
-    color: '#a78bfa', padding: '10px 12px', borderRadius: '8px',
-    cursor: 'pointer', fontSize: '14px', fontWeight: '600',
-    textAlign: 'left', width: '100%',
+    display: 'flex', alignItems: 'center',
+    background: 'rgba(124,58,237,0.07)', border: 'none',
+    borderLeft: '2px solid #7c3aed',
+    color: 'var(--text)', padding: '8px 14px',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '500',
+    textAlign: 'left', width: '100%', letterSpacing: '0.01em',
   },
-  navIcon: { fontSize: '16px' },
   sidebarBottom: { padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '8px' },
   themeBtn: {
     background: 'none', border: '1px solid var(--border2)', color: 'var(--text4)',
@@ -117,5 +135,5 @@ const styles = {
     borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
     fontSize: '13px', fontWeight: '500', width: '100%',
   },
-  main: { flex: 1, overflow: 'auto', background: 'var(--bg)' },
+  main: { background: 'var(--bg)' },
 };

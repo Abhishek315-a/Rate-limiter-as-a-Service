@@ -7,9 +7,9 @@ import api from '../api';
 
 function StatCard({ label, value, sub, color }) {
   return (
-    <div style={{ ...styles.card, borderTop: `3px solid ${color}` }}>
-      <div style={styles.cardLabel}>{label}</div>
+    <div style={{ ...styles.card, borderLeft: `3px solid ${color}` }}>
       <div style={{ ...styles.cardValue, color }}>{value}</div>
+      <div style={styles.cardLabel}>{label}</div>
       {sub && <div style={styles.cardSub}>{sub}</div>}
     </div>
   );
@@ -55,7 +55,7 @@ export default function OverviewPage() {
         <span style={styles.badge}>Last 24 hours</span>
       </div>
 
-      <div style={styles.grid}>
+      <div className="stats-grid">
         <StatCard
           label="Total Requests"
           value={summary?.totalRequests?.toLocaleString() ?? '0'}
@@ -114,14 +114,14 @@ const styles = {
     background: 'rgba(124,58,237,0.15)', color: '#a78bfa',
     borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: '500',
   },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' },
+  grid: {},
   card: {
     background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: '12px', padding: '20px',
+    borderRadius: '6px', padding: '20px 20px 18px',
   },
-  cardLabel: { fontSize: '13px', color: 'var(--text4)', marginBottom: '8px', fontWeight: '500' },
-  cardValue: { fontSize: '28px', fontWeight: '700' },
-  cardSub: { fontSize: '12px', color: 'var(--text5)', marginTop: '4px' },
+  cardLabel: { fontSize: '12px', color: 'var(--text4)', marginTop: '6px', fontWeight: '400', letterSpacing: '0.02em', textTransform: 'uppercase' },
+  cardValue: { fontSize: '32px', fontWeight: '700', letterSpacing: '-0.02em', lineHeight: 1 },
+  cardSub: { fontSize: '11px', color: 'var(--text5)', marginTop: '4px' },
   chartCard: {
     background: 'var(--surface)', border: '1px solid var(--border)',
     borderRadius: '12px', padding: '24px',
