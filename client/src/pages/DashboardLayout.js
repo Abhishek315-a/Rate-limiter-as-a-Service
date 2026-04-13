@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Switch, Route, useLocation, useHistory } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { useTheme } from '../ThemeContext';
 import OverviewPage from './OverviewPage';
 import ApiKeysPage from './ApiKeysPage';
 import RulesPage from './RulesPage';
@@ -15,6 +16,7 @@ const NAV = [
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
   const history = useHistory();
 
@@ -45,6 +47,9 @@ export default function DashboardLayout() {
           </nav>
         </div>
         <div style={styles.sidebarBottom}>
+          <button style={styles.themeBtn} onClick={toggleTheme}>
+            {isDark ? '☀️ Light mode' : '🌙 Dark mode'}
+          </button>
           <div style={styles.userInfo}>
             <div style={styles.avatar}>{user?.email?.[0]?.toUpperCase()}</div>
             <div style={styles.userEmail}>{user?.email}</div>
@@ -68,14 +73,11 @@ export default function DashboardLayout() {
 const styles = {
   shell: { display: 'flex', height: '100vh', overflow: 'hidden' },
   sidebar: {
-    width: '220px',
-    minWidth: '220px',
-    background: '#13151f',
-    borderRight: '1px solid #1e2235',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    padding: '24px 0',
+    width: '220px', minWidth: '220px',
+    background: 'var(--surface2)',
+    borderRight: '1px solid var(--border)',
+    display: 'flex', flexDirection: 'column',
+    justifyContent: 'space-between', padding: '24px 0',
   },
   sidebarTop: { display: 'flex', flexDirection: 'column' },
   logo: { display: 'flex', alignItems: 'center', gap: '8px', padding: '0 20px', marginBottom: '32px' },
@@ -84,10 +86,9 @@ const styles = {
   nav: { display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 12px' },
   navItem: {
     display: 'flex', alignItems: 'center', gap: '10px',
-    background: 'none', border: 'none', color: '#64748b',
+    background: 'none', border: 'none', color: 'var(--text4)',
     padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
     fontSize: '14px', fontWeight: '500', textAlign: 'left', width: '100%',
-    transition: 'all 0.15s',
   },
   navItemActive: {
     display: 'flex', alignItems: 'center', gap: '10px',
@@ -98,19 +99,23 @@ const styles = {
   },
   navIcon: { fontSize: '16px' },
   sidebarBottom: { padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '8px' },
+  themeBtn: {
+    background: 'none', border: '1px solid var(--border2)', color: 'var(--text4)',
+    borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
+    fontSize: '12px', fontWeight: '500', width: '100%', textAlign: 'left',
+  },
   userInfo: { display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px' },
   avatar: {
     width: '30px', height: '30px', borderRadius: '50%',
     background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '13px', fontWeight: '700', color: '#fff',
+    fontSize: '13px', fontWeight: '700', color: '#fff', flexShrink: 0,
   },
-  userEmail: { fontSize: '12px', color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  userEmail: { fontSize: '12px', color: 'var(--text4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   logoutBtn: {
-    background: 'none', border: '1px solid #2d3148', color: '#64748b',
+    background: 'none', border: '1px solid var(--border2)', color: 'var(--text4)',
     borderRadius: '8px', padding: '8px 12px', cursor: 'pointer',
     fontSize: '13px', fontWeight: '500', width: '100%',
-    transition: 'all 0.15s',
   },
-  main: { flex: 1, overflow: 'auto', background: '#0f1117' },
+  main: { flex: 1, overflow: 'auto', background: 'var(--bg)' },
 };

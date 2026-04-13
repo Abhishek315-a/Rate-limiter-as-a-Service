@@ -92,8 +92,8 @@ export default function OverviewPage() {
               <XAxis dataKey="hour" stroke="#475569" tick={{ fontSize: 12 }} />
               <YAxis stroke="#475569" tick={{ fontSize: 12 }} />
               <Tooltip
-                contentStyle={{ background: '#1a1d2e', border: '1px solid #2d3148', borderRadius: '8px' }}
-                labelStyle={{ color: '#94a3b8' }}
+                contentStyle={{ background: 'var(--tooltip-bg)', border: '1px solid var(--border2)', borderRadius: '8px' }}
+                labelStyle={{ color: 'var(--text3)' }}
               />
               <Legend wrapperStyle={{ fontSize: '13px' }} />
               <Line type="monotone" dataKey="Allowed" stroke="#10b981" strokeWidth={2} dot={false} />
@@ -109,25 +109,25 @@ export default function OverviewPage() {
 const styles = {
   page: { padding: '32px' },
   header: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' },
-  title: { fontSize: '22px', fontWeight: '700', color: '#f1f5f9' },
+  title: { fontSize: '22px', fontWeight: '700', color: 'var(--text)' },
   badge: {
     background: 'rgba(124,58,237,0.15)', color: '#a78bfa',
     borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: '500',
   },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' },
   card: {
-    background: '#1a1d2e', border: '1px solid #1e2235',
+    background: 'var(--surface)', border: '1px solid var(--border)',
     borderRadius: '12px', padding: '20px',
   },
-  cardLabel: { fontSize: '13px', color: '#64748b', marginBottom: '8px', fontWeight: '500' },
+  cardLabel: { fontSize: '13px', color: 'var(--text4)', marginBottom: '8px', fontWeight: '500' },
   cardValue: { fontSize: '28px', fontWeight: '700' },
-  cardSub: { fontSize: '12px', color: '#475569', marginTop: '4px' },
+  cardSub: { fontSize: '12px', color: 'var(--text5)', marginTop: '4px' },
   chartCard: {
-    background: '#1a1d2e', border: '1px solid #1e2235',
+    background: 'var(--surface)', border: '1px solid var(--border)',
     borderRadius: '12px', padding: '24px',
   },
-  chartTitle: { fontSize: '15px', fontWeight: '600', color: '#e2e8f0', marginBottom: '20px' },
-  empty: { color: '#475569', fontSize: '14px', textAlign: 'center', padding: '40px 0' },
-  code: { background: '#0f1117', padding: '2px 6px', borderRadius: '4px', color: '#a78bfa' },
-  loading: { padding: '60px', textAlign: 'center', color: '#475569' },
+  chartTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--text2)', marginBottom: '20px' },
+  empty: { color: 'var(--text5)', fontSize: '14px', textAlign: 'center', padding: '40px 0' },
+  code: { background: 'var(--input-bg)', padding: '2px 6px', borderRadius: '4px', color: '#a78bfa' },
+  loading: { padding: '60px', textAlign: 'center', color: 'var(--text5)' },
 };

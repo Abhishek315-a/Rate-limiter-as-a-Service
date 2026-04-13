@@ -7,6 +7,7 @@ router.use(requireJWT);
 
 router.get('/', statsController.getSummary);
 router.get('/timeseries', statsController.getTimeSeries);
+router.get('/keys', statsController.getKeyUsage);
 router.get('/:identifier', statsController.getByIdentifier);
 
 module.exports = router;

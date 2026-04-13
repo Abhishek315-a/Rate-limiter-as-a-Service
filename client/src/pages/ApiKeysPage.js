@@ -3,15 +3,25 @@ import api from '../api';
 
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState([]);
+  const [usage, setUsage] = useState({});
   const [name, setName] = useState('');
   const [newKey, setNewKey] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   async function loadKeys() {
     try {
-      const { data } = await api.get('/auth/keys');
-      setKeys(data.keys);
+      const [keysRes, usageRes] = await Promise.all([
+        api.get('/auth/keys'),
+        api.get('/stats/keys'),
+      ]);
+      setKeys(keysRes.data.keys);
+      const usageMap = {};
+      usageRes.data.keys.forEach((k) => {
+        usageMap[k.key_prefix] = k;
+      });
+      setUsage(usageMap);
     } catch (e) { console.error(e); }
   }
 
@@ -49,10 +59,22 @@ export default function ApiKeysPage() {
 
       {newKey && (
         <div style={styles.newKeyBanner}>
-          <div style={styles.newKeyTitle}>🎉 New API key created — copy it now!</div>
+          <div style={styles.newKeyTitle}>New API key created — copy it now!</div>
           <code style={styles.newKeyCode}>{newKey}</code>
           <div style={styles.newKeyNote}>This key will not be shown again.</div>
-          <button style={styles.dismissBtn} onClick={() => setNewKey(null)}>Dismiss</button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              style={copied ? styles.copiedBtn : styles.copyBtn}
+              onClick={() => {
+                navigator.clipboard.writeText(newKey);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+            >
+              {copied ? 'Copied!' : 'Copy Key'}
+            </button>
+            <button style={styles.dismissBtn} onClick={() => { setNewKey(null); setCopied(false); }}>Dismiss</button>
+          </div>
         </div>
       )}
 
@@ -80,16 +102,26 @@ export default function ApiKeysPage() {
           <table style={styles.table}>
             <thead>
               <tr>
-                {['Name', 'Prefix', 'Created', 'Last Used', 'Status', ''].map((h) => (
+                {['Name', 'Prefix', 'Requests (24h)', 'Created', 'Last Used', 'Status', ''].map((h) => (
                   <th key={h} style={styles.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {keys.map((k) => (
+              {keys.map((k) => {
+                const u = usage[k.key_prefix] || {};
+                return (
                 <tr key={k.id} style={styles.tr}>
                   <td style={styles.td}>{k.name}</td>
                   <td style={styles.td}><code style={styles.prefix}>{k.key_prefix}...</code></td>
+                  <td style={styles.td}>
+                    <span style={styles.usagePill}>
+                      {parseInt(u.total_requests) || 0} req
+                      {parseInt(u.blocked_requests) > 0 && (
+                        <span style={styles.blockedBadge}> · {u.blocked_requests} blocked</span>
+                      )}
+                    </span>
+                  </td>
                   <td style={styles.td}>{new Date(k.created_at).toLocaleDateString()}</td>
                   <td style={styles.td}>{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : '—'}</td>
                   <td style={styles.td}>
@@ -105,7 +137,8 @@ export default function ApiKeysPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -117,29 +150,39 @@ export default function ApiKeysPage() {
 const styles = {
   page: { padding: '32px' },
   header: { marginBottom: '28px' },
-  title: { fontSize: '22px', fontWeight: '700', color: '#f1f5f9' },
+  title: { fontSize: '22px', fontWeight: '700', color: 'var(--text)' },
   newKeyBanner: {
     background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
     borderRadius: '12px', padding: '20px', marginBottom: '24px',
   },
   newKeyTitle: { fontSize: '14px', fontWeight: '600', color: '#10b981', marginBottom: '10px' },
   newKeyCode: {
-    display: 'block', background: '#0f1117', padding: '10px 14px',
+    display: 'block', background: 'var(--input-bg)', padding: '10px 14px',
     borderRadius: '8px', fontSize: '13px', color: '#a78bfa',
     wordBreak: 'break-all', marginBottom: '8px',
   },
-  newKeyNote: { fontSize: '12px', color: '#64748b', marginBottom: '12px' },
-  dismissBtn: {
-    background: 'none', border: '1px solid rgba(16,185,129,0.3)',
+  newKeyNote: { fontSize: '12px', color: 'var(--text4)', marginBottom: '12px' },
+  copyBtn: {
+    background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)',
     color: '#10b981', borderRadius: '6px', padding: '6px 14px',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+  },
+  copiedBtn: {
+    background: 'rgba(16,185,129,0.3)', border: '1px solid rgba(16,185,129,0.5)',
+    color: '#10b981', borderRadius: '6px', padding: '6px 14px',
+    cursor: 'pointer', fontSize: '13px', fontWeight: '600',
+  },
+  dismissBtn: {
+    background: 'none', border: '1px solid var(--border2)',
+    color: 'var(--text4)', borderRadius: '6px', padding: '6px 14px',
     cursor: 'pointer', fontSize: '13px',
   },
-  section: { background: '#1a1d2e', border: '1px solid #1e2235', borderRadius: '12px', padding: '24px', marginBottom: '20px' },
-  sectionTitle: { fontSize: '15px', fontWeight: '600', color: '#e2e8f0', marginBottom: '16px' },
+  section: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', marginBottom: '20px' },
+  sectionTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--text2)', marginBottom: '16px' },
   form: { display: 'flex', gap: '12px', alignItems: 'center' },
   input: {
-    background: '#0f1117', border: '1px solid #2d3148', borderRadius: '8px',
-    padding: '10px 14px', color: '#f1f5f9', fontSize: '14px',
+    background: 'var(--input-bg)', border: '1px solid var(--border2)', borderRadius: '8px',
+    padding: '10px 14px', color: 'var(--text)', fontSize: '14px',
     outline: 'none', flex: 1,
   },
   btn: {
@@ -148,17 +191,19 @@ const styles = {
     fontSize: '14px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap',
   },
   btnDisabled: {
-    background: '#2d3148', color: '#64748b', border: 'none', borderRadius: '8px',
+    background: 'var(--border2)', color: 'var(--text4)', border: 'none', borderRadius: '8px',
     padding: '10px 20px', fontSize: '14px', fontWeight: '600',
     cursor: 'not-allowed', whiteSpace: 'nowrap',
   },
   error: { marginTop: '12px', color: '#f87171', fontSize: '13px' },
-  empty: { color: '#475569', fontSize: '14px', padding: '20px 0' },
+  empty: { color: 'var(--text5)', fontSize: '14px', padding: '20px 0' },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', padding: '10px 12px', fontSize: '12px', color: '#64748b', fontWeight: '600', borderBottom: '1px solid #1e2235' },
-  tr: { borderBottom: '1px solid #1e2235' },
-  td: { padding: '12px', fontSize: '13px', color: '#94a3b8' },
-  prefix: { background: '#0f1117', padding: '2px 6px', borderRadius: '4px', color: '#a78bfa', fontSize: '12px' },
+  th: { textAlign: 'left', padding: '10px 12px', fontSize: '12px', color: 'var(--text4)', fontWeight: '600', borderBottom: '1px solid var(--border)' },
+  tr: { borderBottom: '1px solid var(--border)' },
+  td: { padding: '12px', fontSize: '13px', color: 'var(--text3)' },
+  prefix: { background: 'var(--input-bg)', padding: '2px 6px', borderRadius: '4px', color: '#a78bfa', fontSize: '12px' },
+  usagePill: { fontSize: '12px', color: 'var(--text3)' },
+  blockedBadge: { color: '#ef4444', fontWeight: '500' },
   active: { background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '3px 8px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' },
   inactive: { background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' },
   revokeBtn: {

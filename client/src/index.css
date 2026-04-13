@@ -4,11 +4,42 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d2e;
+  --surface2: #13151f;
+  --border: #1e2235;
+  --border2: #2d3148;
+  --text: #f1f5f9;
+  --text2: #e2e8f0;
+  --text3: #94a3b8;
+  --text4: #64748b;
+  --text5: #475569;
+  --input-bg: #0f1117;
+  --tooltip-bg: #1a1d2e;
+}
+
+body.light {
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --border: #e2e8f0;
+  --border2: #cbd5e1;
+  --text: #0f172a;
+  --text2: #1e293b;
+  --text3: #475569;
+  --text4: #64748b;
+  --text5: #94a3b8;
+  --input-bg: #f8fafc;
+  --tooltip-bg: #ffffff;
+}
+
 body {
   font-family: 'Inter', sans-serif;
-  background: #0f1117;
-  color: #e2e8f0;
+  background: var(--bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
+  transition: background 0.2s, color 0.2s;
 }
 
 ::-webkit-scrollbar {

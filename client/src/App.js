@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Switch, Route, Redirect } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
+import { ThemeProvider } from './ThemeContext';
 import LoginPage from './pages/LoginPage';
 import DashboardLayout from './pages/DashboardLayout';
 
@@ -20,6 +21,7 @@ function PublicRoute({ children, ...rest }) {
 
 export default function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
         <Switch>
@@ -32,5 +34,6 @@ export default function App() {
         </Switch>
       </BrowserRouter>
     </AuthProvider>
+    </ThemeProvider>
   );
 }

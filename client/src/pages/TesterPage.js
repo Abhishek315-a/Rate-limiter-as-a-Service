@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const INIT = { apiKey: '', identifier: 'user_123', resource: 'login', limit: '5', window: '1m' };
+const INIT = { apiKey: '', identifier: 'user_123', resource: 'login', limit: '5', window: '1m', algorithm: 'token_bucket', ruleName: '' };
 
 export default function TesterPage() {
   const [form, setForm] = useState(INIT);
@@ -13,16 +13,10 @@ export default function TesterPage() {
     setLoading(true);
     const start = Date.now();
     try {
-      const { data, status } = await axios.post(
-        '/api/v1/check',
-        {
-          identifier: form.identifier,
-          resource: form.resource,
-          limit: parseInt(form.limit),
-          window: form.window,
-        },
-        { headers: { 'X-API-Key': form.apiKey } }
-      );
+      const body = { identifier: form.identifier, resource: form.resource, algorithm: form.algorithm };
+      if (form.ruleName) { body.ruleName = form.ruleName; }
+      else { body.limit = parseInt(form.limit); body.window = form.window; }
+      const { data, status } = await axios.post('/api/v1/check', body, { headers: { 'X-API-Key': form.apiKey } });
       const latency = Date.now() - start;
       setResults((prev) => [{ ...data, status, latency, ts: new Date().toLocaleTimeString() }, ...prev.slice(0, 19)]);
     } catch (err) {
@@ -40,11 +34,10 @@ export default function TesterPage() {
     for (let i = 0; i < 8; i++) {
       const start = Date.now();
       try {
-        const { data, status } = await axios.post(
-          '/api/v1/check',
-          { identifier: form.identifier, resource: form.resource, limit: parseInt(form.limit), window: form.window },
-          { headers: { 'X-API-Key': form.apiKey } }
-        );
+        const bBody = { identifier: form.identifier, resource: form.resource, algorithm: form.algorithm };
+        if (form.ruleName) { bBody.ruleName = form.ruleName; }
+        else { bBody.limit = parseInt(form.limit); bBody.window = form.window; }
+        const { data, status } = await axios.post('/api/v1/check', bBody, { headers: { 'X-API-Key': form.apiKey } });
         const latency = Date.now() - start;
         setResults((prev) => [{ ...data, status, latency, ts: new Date().toLocaleTimeString() }, ...prev]);
       } catch (err) {
@@ -88,15 +81,26 @@ export default function TesterPage() {
                 <input style={styles.input} value={form.resource} onChange={(e) => setForm({ ...form, resource: e.target.value })} />
               </div>
             </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Rule Name <span style={{color:'var(--text5)',fontWeight:400}}>(optional — overrides limit/window)</span></label>
+              <input style={styles.input} placeholder="e.g. free-tier" value={form.ruleName} onChange={(e) => setForm({ ...form, ruleName: e.target.value })} />
+            </div>
             <div style={styles.row}>
               <div style={styles.field}>
                 <label style={styles.label}>Limit</label>
-                <input style={styles.input} type="number" min="1" value={form.limit} onChange={(e) => setForm({ ...form, limit: e.target.value })} />
+                <input style={styles.input} type="number" min="1" value={form.limit} onChange={(e) => setForm({ ...form, limit: e.target.value })} disabled={!!form.ruleName} />
               </div>
               <div style={styles.field}>
                 <label style={styles.label}>Window</label>
-                <input style={styles.input} placeholder="1m" value={form.window} onChange={(e) => setForm({ ...form, window: e.target.value })} />
+                <input style={styles.input} placeholder="1m" value={form.window} onChange={(e) => setForm({ ...form, window: e.target.value })} disabled={!!form.ruleName} />
               </div>
+            </div>
+            <div style={styles.field}>
+              <label style={styles.label}>Algorithm</label>
+              <select style={styles.input} value={form.algorithm} onChange={(e) => setForm({ ...form, algorithm: e.target.value })}>
+                <option value="token_bucket">Token Bucket</option>
+                <option value="sliding_window">Sliding Window</option>
+              </select>
             </div>
             <div style={styles.actions}>
               <button style={loading ? styles.btnDisabled : styles.btn} type="submit" disabled={loading}>
@@ -145,19 +149,19 @@ export default function TesterPage() {
 const styles = {
   page: { padding: '32px' },
   header: { marginBottom: '28px' },
-  title: { fontSize: '22px', fontWeight: '700', color: '#f1f5f9' },
-  subtitle: { fontSize: '14px', color: '#64748b', marginTop: '4px' },
-  layout: { display: 'grid', gridTemplateColumns: '380px 1fr', gap: '20px' },
-  formCard: { background: '#1a1d2e', border: '1px solid #1e2235', borderRadius: '12px', padding: '24px' },
-  resultsCard: { background: '#1a1d2e', border: '1px solid #1e2235', borderRadius: '12px', padding: '24px' },
-  sectionTitle: { fontSize: '15px', fontWeight: '600', color: '#e2e8f0', marginBottom: '16px' },
-  count: { fontSize: '12px', color: '#64748b', fontWeight: '400', marginLeft: '8px' },
+  title: { fontSize: '22px', fontWeight: '700', color: 'var(--text)' },
+  subtitle: { fontSize: '14px', color: 'var(--text4)', marginTop: '4px' },
+  layout: { display: 'grid', gridTemplateColumns: '400px 1fr', gap: '20px' },
+  formCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px' },
+  resultsCard: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px' },
+  sectionTitle: { fontSize: '15px', fontWeight: '600', color: 'var(--text2)', marginBottom: '16px' },
+  count: { fontSize: '12px', color: 'var(--text4)', fontWeight: '400', marginLeft: '8px' },
   form: { display: 'flex', flexDirection: 'column', gap: '14px' },
   field: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  label: { fontSize: '12px', fontWeight: '500', color: '#64748b' },
+  label: { fontSize: '12px', fontWeight: '500', color: 'var(--text4)' },
   input: {
-    background: '#0f1117', border: '1px solid #2d3148', borderRadius: '8px',
-    padding: '9px 12px', color: '#f1f5f9', fontSize: '13px', outline: 'none',
+    background: 'var(--input-bg)', border: '1px solid var(--border2)', borderRadius: '8px',
+    padding: '9px 12px', color: 'var(--text)', fontSize: '13px', outline: 'none', width: '100%',
   },
   row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' },
   actions: { display: 'flex', gap: '8px', flexWrap: 'wrap' },
@@ -167,7 +171,7 @@ const styles = {
     fontSize: '13px', fontWeight: '600', cursor: 'pointer',
   },
   btnDisabled: {
-    background: '#2d3148', color: '#64748b', border: 'none', borderRadius: '8px',
+    background: 'var(--border2)', color: 'var(--text4)', border: 'none', borderRadius: '8px',
     padding: '10px 18px', fontSize: '13px', fontWeight: '600', cursor: 'not-allowed',
   },
   burstBtn: {
@@ -175,10 +179,10 @@ const styles = {
     borderRadius: '8px', padding: '10px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer',
   },
   clearBtn: {
-    background: 'none', border: '1px solid #2d3148', color: '#64748b',
+    background: 'none', border: '1px solid var(--border2)', color: 'var(--text4)',
     borderRadius: '8px', padding: '10px 14px', fontSize: '13px', cursor: 'pointer',
   },
-  empty: { color: '#475569', fontSize: '14px', padding: '30px 0', textAlign: 'center' },
+  empty: { color: 'var(--text5)', fontSize: '14px', padding: '30px 0', textAlign: 'center' },
   resultsList: { display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '520px', overflowY: 'auto' },
   resultAllowed: {
     background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)',
@@ -191,8 +195,8 @@ const styles = {
   resultTop: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' },
   statusAllowed: { fontSize: '13px', fontWeight: '600', color: '#10b981' },
   statusBlocked: { fontSize: '13px', fontWeight: '600', color: '#ef4444' },
-  statusCode: { fontSize: '12px', color: '#64748b' },
+  statusCode: { fontSize: '12px', color: 'var(--text4)' },
   latency: { fontSize: '12px', color: '#7c3aed', background: 'rgba(124,58,237,0.1)', padding: '2px 6px', borderRadius: '4px' },
-  ts: { fontSize: '11px', color: '#475569', marginLeft: 'auto' },
-  resultMeta: { display: 'flex', gap: '16px', fontSize: '12px', color: '#64748b' },
+  ts: { fontSize: '11px', color: 'var(--text5)', marginLeft: 'auto' },
+  resultMeta: { display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text4)' },
 };

@@ -2,14 +2,33 @@ const { runAlgorithm } = require('../algorithms');
 const { getDB } = require('../config/database');
 
 async function check(req, res, next) {
-  const { identifier, resource = 'default', limit, window: windowStr, algorithm } = req.body;
+  let { identifier, resource = 'default', limit, window: windowStr, algorithm, ruleName } = req.body;
 
   if (!identifier) {
     return res.status(400).json({ error: 'identifier is required' });
   }
 
+  if (ruleName) {
+    try {
+      const db = getDB();
+      const ruleResult = await db.query(
+        `SELECT limit_count, window_seconds, algorithm FROM rules WHERE name = $1 AND user_id = $2`,
+        [ruleName, req.apiKey.user_id]
+      );
+      if (ruleResult.rows.length === 0) {
+        return res.status(404).json({ error: `Rule '${ruleName}' not found` });
+      }
+      const rule = ruleResult.rows[0];
+      limit = limit || rule.limit_count;
+      windowStr = windowStr || `${rule.window_seconds}s`;
+      algorithm = algorithm || rule.algorithm;
+    } catch (err) {
+      return next(err);
+    }
+  }
+
   if (!limit || !windowStr) {
-    return res.status(400).json({ error: 'limit and window are required' });
+    return res.status(400).json({ error: 'limit and window are required (or provide a valid ruleName)' });
   }
 
   const windowSeconds = parseWindow(windowStr);

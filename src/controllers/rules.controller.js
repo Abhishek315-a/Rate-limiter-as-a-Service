@@ -26,7 +26,7 @@ async function create(req, res, next) {
     return res.status(400).json({ error: 'Invalid window format. Use: 30s, 5m, 1h, 1d' });
   }
 
-  const VALID_ALGORITHMS = ['token_bucket'];
+  const VALID_ALGORITHMS = ['token_bucket', 'sliding_window'];
   if (!VALID_ALGORITHMS.includes(algorithm)) {
     return res.status(400).json({ error: `Invalid algorithm. Valid: ${VALID_ALGORITHMS.join(', ')}` });
   }

@@ -110,4 +110,27 @@ async function getTimeSeries(req, res, next) {
   }
 }
 
-module.exports = { getSummary, getByIdentifier, getTimeSeries };
+async function getKeyUsage(req, res, next) {
+  try {
+    const db = getDB();
+    const result = await db.query(
+      `SELECT
+         ak.id, ak.key_prefix, ak.name, ak.is_active,
+         COUNT(rl.id)                                        AS total_requests,
+         COUNT(rl.id) FILTER (WHERE rl.allowed = false)     AS blocked_requests
+       FROM api_keys ak
+       LEFT JOIN request_logs rl
+         ON rl.api_key_prefix = ak.key_prefix
+        AND rl.created_at >= NOW() - INTERVAL '24 hours'
+       WHERE ak.user_id = $1
+       GROUP BY ak.id, ak.key_prefix, ak.name, ak.is_active
+       ORDER BY total_requests DESC`,
+      [req.userId]
+    );
+    res.json({ keys: result.rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getSummary, getByIdentifier, getTimeSeries, getKeyUsage };
