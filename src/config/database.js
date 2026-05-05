@@ -5,6 +5,7 @@ let pool;
 async function connectDB() {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   });
 
   await pool.query('SELECT 1');
