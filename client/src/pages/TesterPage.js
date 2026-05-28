@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const INIT = { apiKey: '', identifier: 'user_123', resource: 'login', limit: '5', window: '1m', algorithm: 'token_bucket', ruleName: '' };
 
@@ -16,7 +16,7 @@ export default function TesterPage() {
       const body = { identifier: form.identifier, resource: form.resource, algorithm: form.algorithm };
       if (form.ruleName) { body.ruleName = form.ruleName; }
       else { body.limit = parseInt(form.limit); body.window = form.window; }
-      const { data, status } = await axios.post('/api/v1/check', body, { headers: { 'X-API-Key': form.apiKey } });
+      const { data, status } = await api.post('/check', body, { headers: { 'X-API-Key': form.apiKey } });
       const latency = Date.now() - start;
       setResults((prev) => [{ ...data, status, latency, ts: new Date().toLocaleTimeString() }, ...prev.slice(0, 19)]);
     } catch (err) {
@@ -37,7 +37,7 @@ export default function TesterPage() {
         const bBody = { identifier: form.identifier, resource: form.resource, algorithm: form.algorithm };
         if (form.ruleName) { bBody.ruleName = form.ruleName; }
         else { bBody.limit = parseInt(form.limit); bBody.window = form.window; }
-        const { data, status } = await axios.post('/api/v1/check', bBody, { headers: { 'X-API-Key': form.apiKey } });
+        const { data, status } = await api.post('/check', bBody, { headers: { 'X-API-Key': form.apiKey } });
         const latency = Date.now() - start;
         setResults((prev) => [{ ...data, status, latency, ts: new Date().toLocaleTimeString() }, ...prev]);
       } catch (err) {
