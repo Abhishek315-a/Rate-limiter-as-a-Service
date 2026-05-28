@@ -13,10 +13,28 @@ const { errorHandler } = require('./middleware/error.middleware');
 const app = express();
 
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
-  credentials: true,
-}));
+
+const normalizeOrigin = (value) => {
+  if (!value) return value;
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+};
+
+const allowedOrigin = normalizeOrigin(process.env.CLIENT_URL);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!allowedOrigin) return callback(null, true);
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = normalizeOrigin(origin);
+      if (normalizedOrigin === allowedOrigin) return callback(null, true);
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(morgan('dev'));
 app.use(express.json());
 
