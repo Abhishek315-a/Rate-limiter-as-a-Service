@@ -4,17 +4,13 @@ A production-grade rate limiting service with Token Bucket algorithm, Redis-back
 
 ## How to Run
 
+For deploying to production, refer to the [Deployment Guide](DEPLOYMENT.md).
+
 ### Prerequisites
 - Node.js >= 12
 - Redis
 - PostgreSQL
 
-Install Redis & PostgreSQL via Homebrew (macOS):
-```bash
-brew install redis postgresql@15
-brew services start redis
-brew services start postgresql@15
-```
 
 ---
 
