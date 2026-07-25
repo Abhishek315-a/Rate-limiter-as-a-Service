@@ -1,5 +1,9 @@
 const bcrypt = require('bcryptjs');
 const { getDB } = require('../config/database');
+const { getRedis } = require('../config/redis');
+
+const AUTH_CACHE_TTL = 60; // seconds
+const CACHE_PREFIX = 'auth_cache:';
 
 async function requireApiKey(req, res, next) {
   const apiKey = req.headers['x-api-key'];
@@ -11,6 +15,24 @@ async function requireApiKey(req, res, next) {
   const prefix = apiKey.substring(0, 8);
 
   try {
+    // ── 1. Check Redis auth cache first (avoids expensive bcrypt on every request) ──
+    const redis = getRedis();
+    const cacheKey = `${CACHE_PREFIX}${prefix}`;
+    const cached = await redis.get(cacheKey);
+
+    if (cached) {
+      const keyRecord = JSON.parse(cached);
+      // Still verify the full key against the hash stored in cache for security
+      const isValid = await bcrypt.compare(apiKey, keyRecord.key_hash);
+      if (!isValid) {
+        return res.status(401).json({ error: 'Invalid API key' });
+      }
+      req.apiKey = keyRecord;
+      req.userId = keyRecord.user_id;
+      return next();
+    }
+
+    // ── 2. Cache miss — query DB ───────────────────────────────────────────────────
     const db = getDB();
     const result = await db.query(
       `SELECT ak.*, u.id as user_id
@@ -31,9 +53,12 @@ async function requireApiKey(req, res, next) {
       return res.status(401).json({ error: 'Invalid API key' });
     }
 
-    await db.query(
-      `UPDATE api_keys SET last_used_at = NOW() WHERE id = $1`,
-      [keyRecord.id]
+    // ── 3. Store in cache (excluding any sensitive raw values) ────────────────────
+    await redis.setex(cacheKey, AUTH_CACHE_TTL, JSON.stringify(keyRecord));
+
+    // ── 4. Update last_used_at (fire-and-forget — don't block the response) ───────
+    db.query(`UPDATE api_keys SET last_used_at = NOW() WHERE id = $1`, [keyRecord.id]).catch(
+      (err) => console.error('Failed to update last_used_at:', err.message)
     );
 
     req.apiKey = keyRecord;
@@ -63,4 +88,4 @@ async function requireJWT(req, res, next) {
   }
 }
 
-module.exports = { requireApiKey, requireJWT };
+module.exports = { requireApiKey, requireJWT, CACHE_PREFIX };

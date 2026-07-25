@@ -1,253 +1,247 @@
 # Deployment Guide
 
-This guide explains how to deploy RLaaS (Rate Limiter as a Service) to production using Railway (backend) and Vercel (frontend).
+This guide explains how to deploy RLaaS (Rate Limiter as a Service) to production using **Render** (backend) and **Vercel** (frontend).
 
 ## Architecture
 
-- **Backend**: Node.js + Express + PostgreSQL + Redis (deployed on Railway)
-- **Frontend**: React (deployed on Vercel)
+- **Backend**: Node.js + Express + PostgreSQL + Redis — deployed on [Render](https://render.com)
+- **Redis**: Managed by [Upstash](https://upstash.com) (external, free tier, TLS)
+- **Frontend**: React — deployed on [Vercel](https://vercel.com)
 
-## Prerequisites
+---
 
-- Railway account ([railway.app](https://railway.app))
-- Vercel account ([vercel.com](https://vercel.com))
-- Git repository with this code
+## Step 1 — Set Up Upstash Redis
 
-## Step 1: Deploy Backend on Railway
+1. Go to [console.upstash.com](https://console.upstash.com) → **Create Database**
+2. Choose a region close to your Render server (e.g. `us-east-1`)
+3. After creation, go to the database details page
+4. Copy the **Redis URL** — it starts with `rediss://` (note the double `s` = TLS)
+5. Keep this URL handy — you'll add it as an env var on Render
 
-### 1.1 Create Railway Project
+> You can reuse an existing Upstash database shared with another project.
+> All RLaaS Redis keys are prefixed with `rlaas:` and `auth_cache:` so they won't collide.
 
-1. Go to [railway.app](https://railway.app) and log in
-2. Click **New Project** → **Deploy from GitHub repo**
-3. Select your repository
+---
 
-### 1.2 Add PostgreSQL
+## Step 2 — Deploy Backend on Render
 
-1. In your Railway project, click **+ New Service**
-2. Select **PostgreSQL** from the database section
-3. Railway will automatically set `DATABASE_URL` environment variable
+### 2.1 Create a Web Service
 
-### 1.3 Add Redis
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect your GitHub repository
+3. Configure the service:
+   - **Root Directory**: *(leave blank — `package.json` is at the repo root)*
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Environment**: `Node`
+   - **Plan**: Free (or paid for production SLAs)
 
-1. Click **+ New Service** again
-2. Select **Redis** from the database section
-3. Railway will automatically set `REDIS_URL` environment variable
+### 2.2 Set Environment Variables
 
-### 1.4 Link Environment Variables to Backend
+Go to your Web Service → **Environment** tab and add:
 
-1. Click on your **Node.js service** (the backend, not databases)
-2. Go to **Variables** tab
-3. Click the **Redis** service → copy its `REDIS_URL` value
-4. Add `REDIS_URL` variable to your backend service with the copied value
-5. Ensure `DATABASE_URL` is already present (linked from PostgreSQL)
-6. Add `CLIENT_URL` with your Vercel frontend URL (you'll get this after deploying frontend)
-7. Add `JWT_SECRET` with a strong random string (generate with: `openssl rand -base64 32`)
-8. Set `NODE_ENV=production`
-9. Set `PORT=8080` (Railway uses port 8080 by default)
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `REDIS_URL` | Upstash Redis URL (`rediss://...`) |
+| `JWT_SECRET` | Strong random string — generate with `openssl rand -base64 32` |
+| `CLIENT_URL` | Your Vercel frontend URL (no trailing slash) |
 
-### 1.5 Generate Public Domain
+> **Do NOT set `PORT`** — Render injects it automatically, and the app already reads `process.env.PORT`.
 
-1. Click on your backend service → **Settings** → **Networking**
-2. Click **Generate Domain**
-3. Copy the URL (e.g., `https://rlaas-production-xxxx.up.railway.app`)
-4. This is your backend API URL
+> `DATABASE_URL` will be set automatically in Step 3.
 
-### 1.6 Deploy
+### 2.3 Configure Health Check
 
-Railway will automatically deploy when you push to the connected branch. Check logs to ensure:
-- `Redis connected`
-- `PostgreSQL connected`
-- `Migrations complete`
-- `RLaaS running on port 8080`
+1. Web Service → **Settings** → **Health & Alerts**
+2. Set **Health Check Path** to `/health`
+3. Render will verify this returns HTTP 200 before marking a deploy as live
 
-## Step 2: Deploy Frontend on Vercel
+### 2.4 Get Your Backend URL
 
-### 2.1 Create Vercel Project
+After the first deploy completes, copy your service URL:
+- Example: `https://rlaas-xxxx.onrender.com`
 
-1. Go to [vercel.com](https://vercel.com) and log in
-2. Click **Add New** → **Project**
-3. Import your GitHub repository
-4. **Root Directory**: Set to `client` (the frontend folder)
-5. Click **Deploy**
+---
 
-### 2.2 Configure Environment Variables
+## Step 3 — Add PostgreSQL on Render
 
-1. After deployment, go to your project → **Settings** → **Environment Variables**
-2. Add the following variable for **Production**:
-   - `REACT_APP_API_URL` = `https://<your-railway-backend-url>/api/v1`
-   - Example: `https://rlaas-production-xxxx.up.railway.app/api/v1`
+1. Render dashboard → **New** → **PostgreSQL**
+2. Give it a name, choose **Free** plan
+3. After creation, go to the database → **Info** tab
+4. Copy the **Internal Database URL**
+5. Go to your Web Service → **Environment** → add:
+   - `DATABASE_URL` = *(paste Internal Database URL)*
+6. Trigger a redeploy (Render may do this automatically)
+
+> **Free Render PostgreSQL databases are deleted after 90 days.**
+> For persistent production data, upgrade to the $7/month paid Postgres tier.
+
+---
+
+## Step 4 — Deploy Frontend on Vercel
+
+### 4.1 Create a Vercel Project
+
+1. Go to [vercel.com](https://vercel.com) → **Add New** → **Project**
+2. Import your GitHub repository
+3. Set **Root Directory** to `client`
+4. Click **Deploy**
+
+### 4.2 Configure Environment Variables
+
+1. Vercel → your project → **Settings** → **Environment Variables**
+2. Add for **Production**:
+   - `REACT_APP_API_URL` = `https://<your-render-service>.onrender.com/api/v1`
 3. Click **Save**
 
-### 2.3 Redeploy
+### 4.3 Redeploy
 
-Environment variables are baked into the build, so you must redeploy:
+Environment variables are baked into the React build, so you must redeploy:
 
-1. Go to **Deployments** tab
-2. Click the **...** menu on the latest deployment
-3. Select **Redeploy**
-4. Or push a small commit to trigger a new build
+1. **Deployments** tab → **...** → **Redeploy**
+2. Or push a small commit to trigger a new build
 
-### 2.4 Get Frontend URL
+---
 
-1. After redeploy, copy your Vercel app URL
-2. Example: `https://rate-limiter-as-a-service.vercel.app`
+## Step 5 — Set CORS on Render
 
-## Step 3: Configure CORS on Railway
+Now that you have your Vercel URL, update the backend:
 
-Now that you have both URLs, update the backend CORS:
+1. Render → Web Service → **Environment**
+2. Set `CLIENT_URL` = your Vercel URL (e.g. `https://rate-limiter-as-a-service-mu.vercel.app`)
+3. Render will automatically redeploy
 
-1. Go to Railway → backend service → **Variables**
-2. Update `CLIENT_URL` with your exact Vercel frontend URL:
-   - Example: `https://rate-limiter-as-a-service.vercel.app`
-3. Railway will automatically redeploy with the new CORS setting
+---
 
-## Step 4: Verify Deployment
+## Step 6 — Verify Deployment
 
-### Test Backend Health
+### Test backend health
 
 ```bash
-curl https://<your-railway-url>/health
-# Should return: { "status": "ok" }
+curl https://<your-render-url>/health
+# Expected: {"status":"ok"}
 ```
 
-### Test Frontend
+### Test registration
 
-1. Open your Vercel app URL in a browser
-2. Try to register a new account
-3. Login and verify the dashboard loads
+```bash
+curl -X POST https://<your-render-url>/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"securepassword"}'
+```
+
+### Test frontend
+
+1. Open your Vercel URL in a browser
+2. Register an account
+3. Log in and verify the dashboard loads
 4. Create an API key
 5. Test the rate limiter from the Tester page
 
-## Troubleshooting
+---
 
-### Backend: Redis Connection Refused
+## Step 7 — Shut Down Railway (after confirming Render works)
 
-**Symptom**: Logs show `ECONNREFUSED` connecting to Redis
+Only after you have verified Render is serving traffic correctly:
 
-**Cause**: `REDIS_URL` not linked to backend service
+1. Go to [railway.app](https://railway.app)
+2. Navigate to your project
+3. Delete each service (Node.js app, PostgreSQL, Redis)
 
-**Fix**:
-1. Railway → click Redis service
-2. Copy the `REDIS_URL` value
-3. Go to backend service → Variables
-4. Add `REDIS_URL` with the copied value
-5. Redeploy
+---
 
-### Frontend: API Calls Fail Silently
+## Environment Variables Reference
 
-**Symptom**: Frontend loads but data doesn't appear
-
-**Cause**: `REACT_APP_API_URL` not set or frontend not redeployed after setting it
-
-**Fix**:
-1. Vercel → Settings → Environment Variables
-2. Confirm `REACT_APP_API_URL` is set for Production
-3. Redeploy on Vercel
-4. Open browser DevTools → Network tab
-5. Verify API requests go to Railway URL, not Vercel URL
-
-### Frontend: CORS Error / Forbidden
-
-**Symptom**: Browser shows CORS error or 403 Forbidden
-
-**Cause**: `CLIENT_URL` not set on Railway or doesn't match Vercel URL exactly
-
-**Fix**:
-1. Railway → backend service → Variables
-2. Set `CLIENT_URL` to exact Vercel URL (no trailing slash)
-3. Redeploy
-
-### Frontend: Build Failed (Babel Version Mismatch)
-
-**Symptom**: Vercel build fails with babel-related errors
-
-**Cause**: Stale build cache or manual babel dependencies
-
-**Fix**:
-1. Vercel → Settings → Functions → Clear build cache (if available)
-2. Or push a commit to trigger fresh build
-3. Ensure `client/package.json` doesn't have manual `@babel/*` dependencies
-
-### Local Development: Build Errors
-
-**Symptom**: `npm start` fails with `Cannot find module 'node:path'` or babel errors
-
-**Cause**: Stale `node_modules` from different Node version
-
-**Fix**:
-```bash
-cd client
-rm -rf node_modules package-lock.json
-npm install
-npm start
-```
-
-## Environment Variables Summary
-
-### Backend (Railway)
+### Backend (Render)
 
 | Variable | Source | Description |
-|----------|--------|-------------|
-| `DATABASE_URL` | Auto-linked by Railway | PostgreSQL connection string |
-| `REDIS_URL` | Link from Redis service | Redis connection string |
-| `CLIENT_URL` | Manual | Your Vercel frontend URL |
+|---|---|---|
+| `DATABASE_URL` | Auto-linked from Render Postgres | PostgreSQL connection string |
+| `REDIS_URL` | Manual — from Upstash | Redis TLS connection string (`rediss://...`) |
+| `CLIENT_URL` | Manual | Your Vercel frontend URL (no trailing slash) |
 | `JWT_SECRET` | Manual | Strong random string for JWT signing |
 | `NODE_ENV` | Manual | Set to `production` |
-| `PORT` | Manual | Set to `8080` |
 
 ### Frontend (Vercel)
 
 | Variable | Source | Description |
-|----------|--------|-------------|
-| `REACT_APP_API_URL` | Manual | Railway backend URL + `/api/v1` |
+|---|---|---|
+| `REACT_APP_API_URL` | Manual | Render backend URL + `/api/v1` |
+
+---
+
+## Troubleshooting
+
+### Backend: Redis connection refused / TLS error
+
+**Symptom**: Logs show `ECONNREFUSED` or TLS errors connecting to Redis
+
+**Fix**:
+- Ensure `REDIS_URL` starts with `rediss://` (not `redis://`) for Upstash
+- The app automatically detects `rediss://` and enables TLS
+
+### Backend: Database not found / migrations fail
+
+**Symptom**: Logs show `relation does not exist` or connection errors
+
+**Fix**:
+1. Confirm `DATABASE_URL` is set and points to the **Internal** Render Postgres URL
+2. Check that `NODE_ENV=production` is set (enables SSL for Render Postgres)
+3. Migrations run automatically on every startup — check Render logs
+
+### Frontend: API calls fail silently
+
+**Symptom**: Frontend loads but data doesn't appear
+
+**Fix**:
+1. Vercel → Settings → Environment Variables
+2. Confirm `REACT_APP_API_URL` is set for Production and points to your Render URL
+3. Redeploy on Vercel after any env var change
+4. Open browser DevTools → Network tab → verify API requests go to Render, not localhost
+
+### Frontend: CORS error / 403 Forbidden
+
+**Symptom**: Browser console shows a CORS error
+
+**Fix**:
+1. Render → Web Service → Environment
+2. Set `CLIENT_URL` to the **exact** Vercel URL (no trailing slash)
+3. Trigger a redeploy
+
+### Render: Service goes to sleep (cold start)
+
+**Symptom**: First request after inactivity takes 20–30 seconds
+
+**Cause**: Render free tier spins down inactive services
+
+**Fix**: This is expected on the free tier. Upgrade to a paid plan to keep the service always-on, or use a cron job pinger (e.g. [UptimeRobot](https://uptimerobot.com), free) to hit `/health` every 5 minutes.
+
+---
 
 ## Security Checklist
 
-- [ ] Use strong `JWT_SECRET` (generate with `openssl rand -base64 32`)
-- [ ] Don't commit `.env` files
-- [ ] Set `NODE_ENV=production` on Railway
-- [ ] Use HTTPS (automatic on Railway and Vercel)
-- [ ] Keep dependencies updated (`npm audit fix` regularly)
-- [ ] Monitor Railway logs for errors
+- [x] `JWT_SECRET` is a strong random string (`openssl rand -base64 32`)
+- [x] `.env` is gitignored — never committed to the repo
+- [x] `NODE_ENV=production` is set on Render
+- [x] HTTPS is automatic on Render and Vercel
+- [x] Auth endpoints have brute-force rate limiting (10 attempts / 15 min / IP)
+- [x] JSON payload size capped at 10kb
+- [x] Stack traces are masked in production error responses
+- [x] API key hashes are stored — raw keys are never persisted
+- [x] Revoked API keys are immediately invalidated from the auth cache
+- [x] request_logs older than 7 days are automatically deleted
+- [ ] Run `npm audit fix` periodically to patch dependency vulnerabilities
+- [ ] Monitor Render logs for anomalies
 
-## Monitoring
+---
 
-### Railway Monitoring
+## Cost Estimate (Free Tier)
 
-- View logs in Railway → backend service → **Logs**
-- Set up log drains for external monitoring
-- Monitor resource usage in **Metrics**
-
-### Vercel Monitoring
-
-- View deployments in Vercel → **Deployments**
-- Monitor build times and errors
-- Use Analytics for frontend performance
-
-## Scaling
-
-### Backend Scaling
-
-- Railway automatically scales based on traffic
-- For high traffic, consider upgrading to paid tier
-- Redis and PostgreSQL are managed services
-
-### Frontend Scaling
-
-- Vercel automatically scales globally
-- Edge caching is automatic
-- No manual scaling needed
-
-## Cost Estimate
-
-- Railway: Free tier covers basic usage (~$5/month after free credits)
-- Vercel: Free tier covers hobby projects
-- Total: Can run for free on both platforms for development/testing
-
-## Support
-
-For issues:
-1. Check Railway logs
-2. Check Vercel build logs
-3. Verify environment variables are set correctly
-4. Test API endpoints with curl/Postman
+| Service | Cost |
+|---|---|
+| Render Web Service | Free (sleeps after inactivity) |
+| Render PostgreSQL | Free (90-day retention limit) |
+| Upstash Redis | Free (10,000 commands/day) |
+| Vercel | Free (hobby plan) |
+| **Total** | **$0/month** |

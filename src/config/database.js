@@ -1,17 +1,28 @@
 const { Pool } = require('pg');
 
 let pool;
+let cleanupTimer;
 
 async function connectDB() {
   pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    max: 10,              // max pool size
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+
+  pool.on('error', (err) => {
+    console.error('PostgreSQL pool error:', err.message);
   });
 
   await pool.query('SELECT 1');
   console.log('PostgreSQL connected');
 
   await runMigrations();
+
+  // Schedule request_log cleanup every 24 hours
+  scheduleLogCleanup();
 }
 
 async function runMigrations() {
@@ -62,9 +73,35 @@ async function runMigrations() {
   console.log('Migrations complete');
 }
 
+async function cleanupOldLogs() {
+  try {
+    const result = await pool.query(
+      `DELETE FROM request_logs WHERE created_at < NOW() - INTERVAL '7 days'`
+    );
+    const deleted = result.rowCount;
+    if (deleted > 0) {
+      console.log(`Log cleanup: removed ${deleted} old request_log rows`);
+    }
+  } catch (err) {
+    console.error('Log cleanup error:', err.message);
+  }
+}
+
+function scheduleLogCleanup() {
+  // Run immediately once, then every 24 hours
+  cleanupOldLogs();
+  cleanupTimer = setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000);
+  cleanupTimer.unref(); // Don't keep the process alive just for this
+}
+
 function getDB() {
   if (!pool) throw new Error('Database not initialized');
   return pool;
 }
 
-module.exports = { connectDB, getDB };
+async function closeDB() {
+  if (cleanupTimer) clearInterval(cleanupTimer);
+  if (pool) await pool.end();
+}
+
+module.exports = { connectDB, getDB, closeDB };

@@ -2,12 +2,36 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { getDB } = require('../config/database');
+const { getRedis } = require('../config/redis');
+const { CACHE_PREFIX } = require('../middleware/auth.middleware');
 
+// ─── Validation helpers ───────────────────────────────────────────────────
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(email) {
+  return typeof email === 'string' && EMAIL_REGEX.test(email);
+}
+
+function validatePassword(password) {
+  return typeof password === 'string' && password.length >= 8 && password.length <= 128;
+}
+
+// ─── Controllers ──────────────────────────────────────────────────────────
 async function register(req, res, next) {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  if (!validateEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email address' });
+  }
+
+  if (!validatePassword(password)) {
+    return res
+      .status(400)
+      .json({ error: 'Password must be between 8 and 128 characters' });
   }
 
   try {
@@ -16,7 +40,7 @@ async function register(req, res, next) {
 
     const result = await db.query(
       `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, created_at`,
-      [email, passwordHash]
+      [email.toLowerCase().trim(), passwordHash]
     );
 
     const user = result.rows[0];
@@ -38,21 +62,27 @@ async function login(req, res, next) {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
+  if (!validateEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email address' });
+  }
+
+  if (typeof password !== 'string') {
+    return res.status(400).json({ error: 'Invalid credentials' });
+  }
+
   try {
     const db = getDB();
     const result = await db.query(
       `SELECT id, email, password_hash FROM users WHERE email = $1`,
-      [email]
+      [email.toLowerCase().trim()]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
+    // Constant-time response whether or not the email exists (prevents enumeration)
     const user = result.rows[0];
-    const isValid = await bcrypt.compare(password, user.password_hash);
+    const dummyHash = '$2a$10$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+    const isValid = user ? await bcrypt.compare(password, user.password_hash) : await bcrypt.compare(password, dummyHash);
 
-    if (!isValid) {
+    if (!user || !isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -66,6 +96,10 @@ async function login(req, res, next) {
 async function createApiKey(req, res, next) {
   const { name } = req.body;
 
+  if (name && (typeof name !== 'string' || name.length > 100)) {
+    return res.status(400).json({ error: 'Key name must be a string of up to 100 characters' });
+  }
+
   try {
     const db = getDB();
 
@@ -75,13 +109,13 @@ async function createApiKey(req, res, next) {
 
     await db.query(
       `INSERT INTO api_keys (user_id, key_hash, key_prefix, name) VALUES ($1, $2, $3, $4)`,
-      [req.userId, keyHash, prefix, name || 'Default']
+      [req.userId, keyHash, prefix, name ? name.trim() : 'Default']
     );
 
     res.status(201).json({
       apiKey: rawKey,
       prefix,
-      name: name || 'Default',
+      name: name ? name.trim() : 'Default',
       note: 'Store this key safely. It will not be shown again.',
     });
   } catch (err) {
@@ -110,12 +144,21 @@ async function revokeApiKey(req, res, next) {
     const db = getDB();
     const result = await db.query(
       `UPDATE api_keys SET is_active = false
-       WHERE id = $1 AND user_id = $2 RETURNING id`,
+       WHERE id = $1 AND user_id = $2 RETURNING id, key_prefix`,
       [keyId, req.userId]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'API key not found' });
+    }
+
+    // Immediately invalidate the auth cache for this key
+    try {
+      const redis = getRedis();
+      await redis.del(`${CACHE_PREFIX}${result.rows[0].key_prefix}`);
+    } catch (cacheErr) {
+      // Non-fatal — the cache will expire naturally after 60s
+      console.error('Failed to invalidate auth cache on revoke:', cacheErr.message);
     }
 
     res.json({ message: 'API key revoked' });
